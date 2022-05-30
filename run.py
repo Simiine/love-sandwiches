@@ -1,5 +1,6 @@
 import gspread
 from google.oauth2.service_account import Credentials
+import json
 
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -7,6 +8,7 @@ SCOPE = [
     "https://www.googleapis.com/auth/drive"
     ]
 
+creds = json.load(open('creds.json'))
 CREDS = Credentials.from_service_account_file('creds.json')
 SCOPED_CREDS = CREDS.with_scopes(SCOPE)
 GSPREAD_CLIENT = gspread.authorize(SCOPED_CREDS)
@@ -30,7 +32,6 @@ def get_sales_data():
         sales_data = data_str.split(",")
         
         if validate_data(sales_data):
-            print("Data is valid!")
             break
 
     return sales_data
@@ -82,6 +83,8 @@ def update_worksheet(data, worksheet):
     """
     print(f"Updating {worksheet} worksheet...\n")
     worksheet_to_update = SHEET.worksheet(worksheet)
+
+    # adds new row to the end of the current data
     worksheet_to_update.append_row(data)
     print(f"{worksheet} worksheet updated successfully\n")
 
@@ -149,8 +152,16 @@ def main():
     sales_columns = get_last_5_entries_sales()
     stock_data = calculate_stock_data(sales_columns)
     update_worksheet(stock_data, "stock")
+    return stock_data
 
 
 print("Welcome to Love Sandwiches Data Automation")
-main()
+stock_data = main()
 
+
+def get_stock_values(data):
+    headings = SHEET.worksheet("stock").row_values(1)
+    return {heading:value for heading, value in zip(headings, data)}
+    
+stock_values = get_stock_values(stock_data)
+print(stock_values)
